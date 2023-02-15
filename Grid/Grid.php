@@ -27,6 +27,8 @@ use Symfony\Component\DependencyInjection\ContainerAwareInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
+use Twig\Environment;
 use Twig\TemplateWrapper;
 
 class Grid implements GridInterface
@@ -314,6 +316,7 @@ class Grid implements GridInterface
      * The grid configuration.
      */
     private ?\APY\DataGridBundle\Grid\GridConfigInterface $config;
+    private Environment $twig;
 
     /**
      * Constructor.
@@ -322,7 +325,7 @@ class Grid implements GridInterface
      * @param string                   $id        set if you are using more then one grid inside controller
      * @param GridConfigInterface|null $config    The grid configuration.
      */
-    public function __construct($container, $id = '', GridConfigInterface $config = null)
+    public function __construct($container, AuthorizationCheckerInterface $authorizationChecker, Environment $twig, $id = '', GridConfigInterface $config = null)
     {
         // @todo: why the whole container is injected?
         $this->container = $container;
@@ -331,7 +334,8 @@ class Grid implements GridInterface
         $this->router = $container->get('router');
         $this->request = $container->get('request_stack')->getCurrentRequest();
         $this->session = $this->request->getSession();
-        $this->securityContext = $container->get('security.authorization_checker');
+        $this->securityContext = $authorizationChecker;
+        $this->twig = $twig;
 
         $this->id = $id;
 
@@ -2162,7 +2166,7 @@ class Grid implements GridInterface
             if ($view === null) {
                 return $parameters;
             } else {
-                $content = $this->container->get('twig')->render($view, $parameters);
+                $content = $this->twig->render($view, $parameters);
 
                 if (null === $response) {
                     $response = new Response();
@@ -2305,7 +2309,7 @@ class Grid implements GridInterface
      * Get default order (e.g. my_column_id|asc).
      *
      * @return  string
-     */ 
+     */
     public function getDefaultOrder()
     {
         return $this->defaultOrder;
@@ -2315,7 +2319,7 @@ class Grid implements GridInterface
      * Get the value of maxResults
      *
      * @return  int
-     */ 
+     */
     public function getMaxResults()
     {
         return $this->maxResults;
@@ -2323,7 +2327,7 @@ class Grid implements GridInterface
 
     /**
      * Get the value of lazyAddColumn
-     */ 
+     */
     public function getLazyAddColumn()
     {
         return $this->lazyAddColumn;
@@ -2333,7 +2337,7 @@ class Grid implements GridInterface
      * Get default Tweak.
      *
      * @return  string
-     */ 
+     */
     public function getDefaultTweak()
     {
         return $this->defaultTweak;
@@ -2341,7 +2345,7 @@ class Grid implements GridInterface
 
     /**
      * Get the value of lazyVisibleColumns
-     */ 
+     */
     public function getLazyVisibleColumns()
     {
         return $this->lazyVisibleColumns;
@@ -2349,7 +2353,7 @@ class Grid implements GridInterface
 
     /**
      * Get the value of lazyHideShowColumns
-     */ 
+     */
     public function getLazyHideShowColumns()
     {
         return $this->lazyHideShowColumns;
@@ -2357,7 +2361,7 @@ class Grid implements GridInterface
 
     /**
      * Get the value of actionsColumnSize
-     */ 
+     */
     public function getActionsColumnSize()
     {
         return $this->actionsColumnSize;
@@ -2365,7 +2369,7 @@ class Grid implements GridInterface
 
     /**
      * Get the value of actionsColumnTitle
-     */ 
+     */
     public function getActionsColumnTitle()
     {
         return $this->actionsColumnTitle;
@@ -2375,7 +2379,7 @@ class Grid implements GridInterface
      * Get the value of showFilters
      *
      * @return  bool
-     */ 
+     */
     public function getShowFilters()
     {
         return $this->showFilters;
@@ -2385,7 +2389,7 @@ class Grid implements GridInterface
      * Get the value of showTitles
      *
      * @return  bool
-     */ 
+     */
     public function getShowTitles()
     {
         return $this->showTitles;
@@ -2393,7 +2397,7 @@ class Grid implements GridInterface
 
     /**
      * Get the value of lazyHiddenColumns
-     */ 
+     */
     public function getLazyHiddenColumns()
     {
         return $this->lazyHiddenColumns;
@@ -2403,7 +2407,7 @@ class Grid implements GridInterface
      * Get the value of newSession
      *
      * @return  bool
-     */ 
+     */
     public function getNewSession()
     {
         return $this->newSession;
@@ -2413,7 +2417,7 @@ class Grid implements GridInterface
      * Get default filters.
      *
      * @return  array
-     */ 
+     */
     public function getDefaultFilters()
     {
         return $this->defaultFilters;
@@ -2423,7 +2427,7 @@ class Grid implements GridInterface
      * Get permanent filters.
      *
      * @return  array
-     */ 
+     */
     public function getPermanentFilters()
     {
         return $this->permanentFilters;

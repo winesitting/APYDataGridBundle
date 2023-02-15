@@ -1,8 +1,8 @@
 <?xml version="1.0" ?>
 
 <container xmlns="http://symfony.com/schema/dic/services"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
 
     <parameters>
         <parameter key="grid.twig_extension.class">APY\DataGridBundle\Twig\DataGridExtension</parameter>
@@ -22,6 +22,8 @@
 
         <service id="grid" class="%grid.class%" shared="false" public="true">
             <argument type="service" id="service_container" />
+            <argument type="service" id="Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface" />
+            <argument type="service" id="Twig_Environment" />
             <call method="setLimits">
                 <argument>%apy_data_grid.limits%</argument>
             </call>
@@ -41,7 +43,7 @@
                 <argument>%apy_data_grid.actions_columns_title%</argument>
             </call>
         </service>
-        
+
         <service id="%grid.class%" alias="grid" public="true">
         </service>
 
