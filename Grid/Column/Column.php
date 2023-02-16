@@ -881,7 +881,7 @@ abstract class Column
     {
         $regex = '/(?P<all>(?P<field>\w+):(?P<function>\w+)(:)?(?P<parameters>\w*))$/';
 
-        return ($matches === null) ? preg_match($regex, $this->field) : preg_match($regex, $this->field, $matches);
+        return ($matches === null) ? preg_match($regex, (string) $this->field) : preg_match($regex, (string) $this->field, $matches);
     }
 
     /**
