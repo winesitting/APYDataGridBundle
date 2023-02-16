@@ -41,7 +41,7 @@ class GridManager implements IteratorAggregate, Countable
         $this->grids = new SplObjectStorage();
     }
 
-    public function getIterator()
+    public function getIterator(): \Traversable
     {
         return $this->grids;
     }
