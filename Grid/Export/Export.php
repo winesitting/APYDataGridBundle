@@ -17,6 +17,7 @@ use APY\DataGridBundle\Grid\Grid;
 use Symfony\Component\DependencyInjection\ContainerAwareInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Response;
+use Twig\Environment;
 use Twig\TemplateWrapper;
 
 abstract class Export implements ExportInterface, ContainerAwareInterface
@@ -76,11 +77,11 @@ abstract class Export implements ExportInterface, ContainerAwareInterface
      *
      * @return \APY\DataGridBundle\Grid\Export\Export
      */
-    public function setContainer(ContainerInterface $container = null)
+    public function setContainer(ContainerInterface $container = null, Environment $twig = null)
     {
         $this->container = $container;
 
-        $this->twig = $this->container->get('twig');
+        $this->twig = $twig;
 
         return $this;
     }

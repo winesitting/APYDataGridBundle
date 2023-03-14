@@ -706,7 +706,7 @@ class Grid implements GridInterface
 
                 $export = $this->exports[$exportId];
                 if ($export instanceof ContainerAwareInterface) {
-                    $export->setContainer($this->container);
+                    $export->setContainer($this->container, $this->twig);
                 }
                 $export->computeData($this);
 
