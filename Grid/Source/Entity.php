@@ -672,12 +672,15 @@ class Entity extends Source
                     $values['type'] = 'boolean';
                     break;
                 case 'date':
+                case 'date_immutable':
                     $values['type'] = 'date';
                     break;
                 case 'datetime':
+                case 'datetime_immutable':
                     $values['type'] = 'datetime';
                     break;
                 case 'time':
+                case 'time_immutable':
                     $values['type'] = 'time';
                     break;
                 case 'array':
