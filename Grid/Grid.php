@@ -888,9 +888,7 @@ class Grid implements GridInterface
 
     protected function processLimit($limit)
     {
-        if (isset($this->limits[$limit])) {
-            $this->set(self::REQUEST_QUERY_LIMIT, $limit);
-        }
+        $this->set(self::REQUEST_QUERY_LIMIT, $limit);
     }
 
     protected function setDefaultSessionData()
