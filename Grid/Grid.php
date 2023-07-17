@@ -837,7 +837,13 @@ class Grid implements GridInterface
                 // Get data from request
                 $data = $this->getFromRequest($ColumnId);
 
+
                 //if no item is selectd in multi select filter : simulate empty first choice
+                /**
+                 * We comment this code because when we have a multi select filter and we reset the grid, it simply tells that the grid is filtered (but it's not).
+                 * It leads to not apply defaultFilters on reset.
+                 * @link https://github.com/winesitting/sitting/issues/292
+                
                 if ($column->getFilterType() == 'select'
                     && $column->getSelectMulti() === true
                     && $data === null
@@ -847,6 +853,7 @@ class Grid implements GridInterface
                     && ($this->getFromRequest(self::REQUEST_QUERY_MASS_ACTION) === null || $this->getFromRequest(self::REQUEST_QUERY_MASS_ACTION) == '-1')) {
                     $data = ['from' => ''];
                 }
+                 * */
 
                 // Store in the session
                 $this->set($ColumnId, $data);
