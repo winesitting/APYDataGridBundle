@@ -684,6 +684,7 @@ class Entity extends Source
                     $values['type'] = 'time';
                     break;
                 case 'array':
+                case 'json':
                 case 'object':
                     $values['type'] = 'array';
                     break;
