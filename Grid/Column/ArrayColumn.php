@@ -43,29 +43,16 @@ class ArrayColumn extends Column
                     case self::OPERATOR_EQ:
                     case self::OPERATOR_NEQ:
                         $filterValues = (array) $filter->getValue();
-                        $value = '';
-                        $counter = 1;
-                        foreach ($filterValues as $filterValue) {
-                            $len = strlen($filterValue);
-                            $value .= 'i:' . $counter++ . ';s:' . $len . ':"' . $filterValue . '";';
-                        }
-
-                        $filters[] = new Filter($filter->getOperator(), 'a:' . count($filterValues) . ':{' . $value . '}');
-                        break;
-                    case self::OPERATOR_LIKE:
-                    case self::OPERATOR_NLIKE:
-                        $len = strlen($filter->getValue());
-                        $value = 's:' . $len . ':"' . $filter->getValue() . '";';
-                        $filters[] = new Filter($filter->getOperator(), $value);
+                        $filters[] = new Filter($filter->getOperator(), json_encode($filterValues));
                         break;
                     case self::OPERATOR_ISNULL:
                         $filters[] = new Filter(self::OPERATOR_ISNULL);
-                        $filters[] = new Filter(self::OPERATOR_EQ, 'a:0:{}');
+                        $filters[] = new Filter(self::OPERATOR_EQ, '[]');
                         $this->setDataJunction(self::DATA_DISJUNCTION);
                         break;
                     case self::OPERATOR_ISNOTNULL:
                         $filters[] = new Filter(self::OPERATOR_ISNOTNULL);
-                        $filters[] = new Filter(self::OPERATOR_NEQ, 'a:0:{}');
+                        $filters[] = new Filter(self::OPERATOR_NEQ, '[]');
                         break;
                     default:
                         $filters[] = $filter;
