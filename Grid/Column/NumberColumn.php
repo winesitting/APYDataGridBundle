@@ -96,6 +96,9 @@ class NumberColumn extends Column
 
     public function getDisplayedValue($value)
     {
+        if (is_object($value) && $value instanceof \UnitEnum) {
+            $value = $value->value;
+        }
         if ($value !== null && $value !== '') {
             $formatter = new \NumberFormatter($this->locale, $this->style);
 
