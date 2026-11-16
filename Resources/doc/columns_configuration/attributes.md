@@ -1,6 +1,6 @@
 # PHP attributes
 
-Grid mapping uses native PHP attributes and requires PHP 8.1 or later.
+Grid mapping uses native PHP attributes and requires PHP 8.4 or later.
 The Doctrine annotation reader is no longer used. Existing PHP grid builders
 continue to work, and properties are still discovered without any APY attribute,
 including inherited properties. Doctrine metadata supplies their storage types.

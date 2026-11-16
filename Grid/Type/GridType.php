@@ -67,18 +67,12 @@ class GridType extends AbstractType
         $allowedValues = [
             'order' => ['asc', 'desc'],
         ];
-        if (method_exists($resolver, 'setDefault')) {
-            // Symfony 2.6.0 and up
-            foreach ($allowedTypes as $option => $types) {
-                $resolver->setAllowedTypes($option, $types);
-            }
+        foreach ($allowedTypes as $option => $types) {
+            $resolver->setAllowedTypes($option, $types);
+        }
 
-            foreach ($allowedValues as $option => $values) {
-                $resolver->setAllowedValues($option, $values);
-            }
-        } else {
-            $resolver->setAllowedTypes($allowedTypes);
-            $resolver->setAllowedValues($allowedValues);
+        foreach ($allowedValues as $option => $values) {
+            $resolver->setAllowedValues($option, $values);
         }
     }
 

@@ -16,7 +16,7 @@ This bundle allow you to create listing with many features that you can expect :
 - Mass actions, Row actions
 - Supports mapped fields with Entity source
 - Securing the columns, actions and export with security roles
-- Native PHP attributes and PHP configuration (PHP 8.1+)
+- Native PHP attributes and PHP configuration (PHP 8.4+)
 - External filters box
 - Ajax loading
 - Pagination (You can also use Pagerfanta)
