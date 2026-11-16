@@ -244,7 +244,6 @@ abstract class Source implements DriverInterface
     {
         // Populate from data
         $items = $this->getItemsFromData($columns);
-        $serializeColumns = [];
 
         foreach ($this->data as $key => $item) {
 
@@ -252,10 +251,6 @@ abstract class Source implements DriverInterface
                 $fieldName = $column->getField();
                 $fieldValue = $items[$key][$fieldName];
                 $dataIsNumeric = ($column->getType() == 'number' || $column->getType() == 'boolean');
-
-                if ($column->getType() === 'array') {
-                    $serializeColumns[] = $column->getId();
-                }
 
                 // Filter
                 if ($column->isFiltered()) {
@@ -447,14 +442,6 @@ abstract class Source implements DriverInterface
             }
 
             foreach ($item as $fieldName => $fieldValue) {
-                if ($this instanceof Entity) {
-                    if (in_array($fieldName, $serializeColumns)) {
-                        if (is_string($fieldValue)) {
-                            $fieldValue = unserialize($fieldValue);
-                        }
-                    }
-                }
-
                 $row->setField($fieldName, $fieldValue);
             }
 
@@ -515,11 +502,7 @@ abstract class Source implements DriverInterface
                             $values[$displayedValue] = $displayedValue;
                             break;
                         case 'array':
-                            if (is_string($value)) {
-                                $value = unserialize($value);
-                            }
-
-                            foreach ($value as $val) {
+                            foreach ((array) $value as $val) {
                                 $values[$val] = $val;
                             }
                             break;
@@ -559,14 +542,14 @@ abstract class Source implements DriverInterface
      * removing accents and latin special chars.
      *
      * @param mixed  $inputString
-     * @param string $type        for array type, will serialize datas
+     * @param string $type        for array type, will encode as JSON
      *
-     * @return string the input, serialized for arrays or without accents for strings
+     * @return string the input, JSON-encoded for arrays or without accents for strings
      */
     protected function prepareStringForLikeCompare($input, $type = null)
     {
         if ($type === 'array') {
-            $outputString = str_replace(':{i:0;', ':{', serialize($input));
+            $outputString = json_encode($input, JSON_THROW_ON_ERROR);
         } else {
             $outputString = $this->removeAccents($input);
         }

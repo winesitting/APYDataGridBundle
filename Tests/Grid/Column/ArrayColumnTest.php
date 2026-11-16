@@ -49,7 +49,7 @@ class ArrayColumnTest extends TestCase
         $this->column->setData(['operator' => Column::OPERATOR_EQ, 'from' => $value]);
 
         $this->assertEquals(
-            [new Filter(Column::OPERATOR_EQ, 'a:2:{i:1;s:3:"foo";i:2;s:6:"foobar";}')],
+            [new Filter(Column::OPERATOR_EQ, '["foo","foobar"]')],
             $this->column->getFilters('asource')
         );
     }
@@ -61,7 +61,7 @@ class ArrayColumnTest extends TestCase
         $this->column->setData(['operator' => Column::OPERATOR_NEQ, 'from' => $value]);
 
         $this->assertEquals(
-            [new Filter(Column::OPERATOR_NEQ, 'a:2:{i:1;s:3:"foo";i:2;s:6:"foobar";}')],
+            [new Filter(Column::OPERATOR_NEQ, '["foo","foobar"]')],
             $this->column->getFilters('asource')
         );
     }
@@ -73,7 +73,7 @@ class ArrayColumnTest extends TestCase
         $this->column->setData(['operator' => Column::OPERATOR_LIKE, 'from' => $value]);
 
         $this->assertEquals(
-            [new Filter(Column::OPERATOR_LIKE, 's:3:"foo";')],
+            [new Filter(Column::OPERATOR_LIKE, 'foo')],
             $this->column->getFilters('asource')
         );
     }
@@ -85,7 +85,7 @@ class ArrayColumnTest extends TestCase
         $this->column->setData(['operator' => Column::OPERATOR_NLIKE, 'from' => $value]);
 
         $this->assertEquals(
-            [new Filter(Column::OPERATOR_NLIKE, 's:3:"foo";')],
+            [new Filter(Column::OPERATOR_NLIKE, 'foo')],
             $this->column->getFilters('asource')
         );
     }
@@ -96,7 +96,7 @@ class ArrayColumnTest extends TestCase
 
         $this->assertEquals([
             new Filter(Column::OPERATOR_ISNULL),
-            new Filter(Column::OPERATOR_EQ, 'a:0:{}'),
+            new Filter(Column::OPERATOR_EQ, '[]'),
         ], $this->column->getFilters('asource'));
         $this->assertEquals(Column::DATA_DISJUNCTION, $this->column->getDataJunction());
     }
@@ -107,8 +107,17 @@ class ArrayColumnTest extends TestCase
 
         $this->assertEquals([
             new Filter(Column::OPERATOR_ISNOTNULL),
-            new Filter(Column::OPERATOR_NEQ, 'a:0:{}'),
+            new Filter(Column::OPERATOR_NEQ, '[]'),
         ], $this->column->getFilters('asource'));
+    }
+
+    public function testEqualFilterRejectsInvalidJson()
+    {
+        $this->column->setData(['operator' => Column::OPERATOR_EQ, 'from' => ["\xB1\x31"]]);
+
+        $this->expectException(\JsonException::class);
+
+        $this->column->getFilters('entity');
     }
 
     public function testRenderCellWithoutCallback()

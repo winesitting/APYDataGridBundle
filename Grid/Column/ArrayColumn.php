@@ -43,7 +43,7 @@ class ArrayColumn extends Column
                     case self::OPERATOR_EQ:
                     case self::OPERATOR_NEQ:
                         $filterValues = (array) $filter->getValue();
-                        $filters[] = new Filter($filter->getOperator(), json_encode($filterValues));
+                        $filters[] = new Filter($filter->getOperator(), json_encode($filterValues, JSON_THROW_ON_ERROR));
                         break;
                     case self::OPERATOR_ISNULL:
                         $filters[] = new Filter(self::OPERATOR_ISNULL);

@@ -394,7 +394,6 @@ class Entity extends Source
         $this->querySelectfromSource = clone $this->query;
 
         $bindIndex = 123;
-        $serializeColumns = [];
         $where = $gridDataJunction === Column::DATA_CONJUNCTION ? $this->query->expr()->andx() : $this->query->expr()->orx();
 
         $columnsById = [];
@@ -475,10 +474,6 @@ class Entity extends Source
                     $where->add($sub);
                 }
             }
-
-            if ($column->getType() === 'array') {
-                $serializeColumns[] = $column->getId();
-            }
         }
 
         if ($where->count() > 0) {
@@ -553,10 +548,6 @@ class Entity extends Source
 
             foreach ($item as $key => $value) {
                 $key = $this->fromAliasToColId($key);
-
-                if (in_array($key, $serializeColumns) && is_string($value)) {
-                    $value = unserialize($value);
-                }
 
                 $row->setField($key, $value);
             }
@@ -683,9 +674,7 @@ class Entity extends Source
                 case 'time_immutable':
                     $values['type'] = 'time';
                     break;
-                case 'array':
                 case 'json':
-                case 'object':
                     $values['type'] = 'array';
                     break;
             }
@@ -738,10 +727,7 @@ class Entity extends Source
 
                     switch ($column->getType()) {
                         case 'array':
-                            if (is_string($value)) {
-                                $value = unserialize($value);
-                            }
-                            foreach ($value as $val) {
+                            foreach ((array) $value as $val) {
                                 $values[$val] = $val;
                             }
                             break;

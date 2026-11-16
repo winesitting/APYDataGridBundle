@@ -2,7 +2,9 @@
 
 namespace APY\DataGridBundle\Tests\Grid\Source;
 
+use APY\DataGridBundle\Grid\Column\ArrayColumn;
 use APY\DataGridBundle\Grid\Column\Column;
+use APY\DataGridBundle\Grid\Column\NumberColumn;
 use APY\DataGridBundle\Grid\Column\UntypedColumn;
 use APY\DataGridBundle\Grid\Columns;
 use APY\DataGridBundle\Grid\Row;
@@ -17,6 +19,58 @@ class VectorTest extends TestCase
     public function testCreateVectorWithEmptyData()
     {
         $this->assertEmpty($this->vector->getData());
+    }
+
+    public function testFilterArrayValuesUsingJson()
+    {
+        $data = [
+            ['id' => 1, 'tags' => ['foo', 'foobar']],
+            ['id' => 2, 'tags' => ['bar']],
+            ['id' => 3, 'tags' => []],
+        ];
+
+        foreach ([
+            [Column::OPERATOR_EQ, ['foo', 'foobar'], [1]],
+            [Column::OPERATOR_NEQ, ['foo', 'foobar'], [2, 3]],
+            [Column::OPERATOR_LIKE, ['foo'], [1]],
+            [Column::OPERATOR_NLIKE, ['foo'], [2, 3]],
+            [Column::OPERATOR_ISNULL, null, [3]],
+            [Column::OPERATOR_ISNOTNULL, null, [1, 2]],
+        ] as [$operator, $value, $expectedIds]) {
+            $tags = new ArrayColumn(['id' => 'tags', 'field' => 'tags']);
+            $tags->setData(['operator' => $operator, 'from' => $value]);
+            $columns = [new NumberColumn(['id' => 'id', 'field' => 'id']), $tags];
+            $vector = new Vector($data, $columns);
+            $rows = $vector->executeFromData($columns);
+            $ids = [];
+
+            foreach ($rows as $row) {
+                $ids[] = $row->getField('id');
+                $this->assertSame($data[$row->getField('id') - 1]['tags'], $row->getField('tags'));
+            }
+
+            $this->assertSame($expectedIds, $ids, $operator);
+        }
+    }
+
+    public function testPopulateArraySelectWithNullAndEmptyValues()
+    {
+        $column = new ArrayColumn([
+            'id' => 'tags',
+            'field' => 'tags',
+            'filter' => 'select',
+            'selectFrom' => 'source',
+            'values' => ['foo' => 'Foo label'],
+        ]);
+        $vector = new Vector([
+            ['tags' => null],
+            ['tags' => []],
+            ['tags' => ['foo', 'bar']],
+        ], [$column]);
+
+        $vector->populateSelectFilters([$column]);
+
+        $this->assertSame(['bar' => 'bar', 'foo' => 'Foo label'], $column->getValues());
     }
 
     public function testRaiseExceptionDuringVectorCreationWhenDataIsNotAVector()
