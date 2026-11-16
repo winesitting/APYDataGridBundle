@@ -20,6 +20,14 @@ class ColumnTest extends TestCase
         $this->assertEquals(['default'], $column->getGroups());
     }
 
+    public function testColumnAcceptsNamedOptions()
+    {
+        $column = new Column(title: 'Name', groups: ['admin']);
+
+        $this->assertSame(['title' => 'Name', 'groups' => ['admin']], $column->getMetadata());
+        $this->assertSame(['admin'], $column->getGroups());
+    }
+
     public function testColumnStringMetadataInjectedInConstructor()
     {
         $column = new Column($this->stringMetadata);

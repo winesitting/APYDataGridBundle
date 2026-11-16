@@ -17,6 +17,15 @@ class SourceTest extends TestCase
         $this->assertEquals([], $this->source->getColumns());
     }
 
+    public function testColumnsAcceptNamedArrayOptions()
+    {
+        $source = new Source(columns: ['id', 'name'], sortable: false);
+
+        $this->assertSame(['id', 'name'], $source->getColumns());
+        $this->assertFalse($source->isSortable());
+        $this->assertSame([], (new Source(columns: ''))->getColumns());
+    }
+
     public function testFilterableHasDefaultValue()
     {
         $this->assertEquals(true, $this->source->isFilterable());

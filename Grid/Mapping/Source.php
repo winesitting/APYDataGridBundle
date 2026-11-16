@@ -12,9 +12,7 @@
 
 namespace APY\DataGridBundle\Grid\Mapping;
 
-/**
- * @Annotation
- */
+#[\Attribute(\Attribute::TARGET_CLASS | \Attribute::IS_REPEATABLE)]
 class Source
 {
     protected $columns;
@@ -23,9 +21,11 @@ class Source
     protected $groups;
     protected $groupBy;
 
-    public function __construct($metadata = [])
+    public function __construct($metadata = [], ...$options)
     {
-        $this->columns = (isset($metadata['columns']) && $metadata['columns'] != '') ? array_map('trim', explode(',', $metadata['columns'])) : [];
+        $metadata = array_replace($metadata, $options);
+        $columns = $metadata['columns'] ?? [];
+        $this->columns = is_string($columns) ? ($columns === '' ? [] : array_map('trim', explode(',', $columns))) : $columns;
         $this->filterable = isset($metadata['filterable']) ? $metadata['filterable'] : true;
         $this->sortable = isset($metadata['sortable']) ? $metadata['sortable'] : true;
         $this->groups = (isset($metadata['groups']) && $metadata['groups'] != '') ? (array) $metadata['groups'] : ['default'];

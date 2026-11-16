@@ -52,14 +52,12 @@
             <argument type="service" id="twig" />
         </service>
 
-        <service id="grid.metadata.driver.annotation" class="APY\DataGridBundle\Grid\Mapping\Driver\Annotation">
-            <argument type="service" id="annotation_reader" />
-        </service>
+        <service id="grid.metadata.driver.attribute" class="APY\DataGridBundle\Grid\Mapping\Driver\AttributeDriver" />
 
         <service id="grid.mapping.manager" class="APY\DataGridBundle\Grid\Mapping\Metadata\Manager" shared="false" public="true">
             <argument type="service" id="form.factory"/>
             <call method="addDriver">
-                <argument type="service" id="grid.metadata.driver.annotation" />
+                <argument type="service" id="grid.metadata.driver.attribute" />
                 <argument>1</argument>
             </call>
         </service>

@@ -16,7 +16,7 @@ This bundle allow you to create listing with many features that you can expect :
 - Mass actions, Row actions
 - Supports mapped fields with Entity source
 - Securing the columns, actions and export with security roles
-- Annotations and PHP configuration
+- Native PHP attributes and PHP configuration (PHP 8.1+)
 - External filters box
 - Ajax loading
 - Pagination (You can also use Pagerfanta)
@@ -75,27 +75,23 @@ class DefaultController extends Controller
 
 ```php
 <?php
-namespace MyProject\MyBundle\Entity
+namespace MyProject\MyBundle\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use APY\DataGridBundle\Grid\Mapping as GRID;
 
-/**
- * @GRID\Source(columns="id, my_datetime")
- */
+#[GRID\Source(columns: ['id', 'my_datetime'])]
 class MyEntity
 {
-	/*
-	 * @ORM\Column(type="integer")
-	 */
+	#[ORM\Column(type: 'integer')]
 	protected $id;
 
-	/*
-	 * @ORM\Column(type="datetime")
-	 */
+	#[ORM\Column(type: 'datetime')]
 	protected $my_datetime;
 }
 ```
+
+See [attribute configuration and migration](Resources/doc/columns_configuration/attributes.md).
 
 #### Display the grid in a twig template
 

@@ -24,7 +24,7 @@
         }
     ],
     "require": {
-        "php": "^7.4 || ^8.0",
+        "php": "^8.1",
         "symfony/form": "^3.0 || ^4.0 || ^5.0 || ^6.0 || ^7.0",
         "symfony/dependency-injection": "^3.0 || ^4.0 || ^5.0 || ^6.0 || ^7.0",
         "symfony/config": "^3.0 || ^4.0 || ^5.0 || ^6.0 || ^7.0",
@@ -55,8 +55,7 @@
         "ext-mbstring": "Convert your data with the right charset",
         "PHPExcel": "Export the grid (Excel, HTML or PDF)",
         "doctrine/orm": "If you want to use Entity as source, please require doctrine/orm",
-        "doctrine/mongodb-odm": "If you want to use Document as source, please require doctrine/mongodb-odm",
-        "jms/translation-bundle": "If you want to use translations"
+        "doctrine/mongodb-odm": "If you want to use Document as source, please require doctrine/mongodb-odm"
     },
     "autoload": {
         "psr-4": { "APY\\DataGridBundle\\": "" }

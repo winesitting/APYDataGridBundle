@@ -15,7 +15,7 @@ namespace APY\DataGridBundle\Grid\Mapping\Driver;
 use APY\DataGridBundle\Grid\Mapping\Column as Column;
 use APY\DataGridBundle\Grid\Mapping\Source as Source;
 
-class Annotation implements DriverInterface
+class AttributeDriver implements DriverInterface
 {
     protected $columns;
     protected $filterable;
@@ -24,40 +24,40 @@ class Annotation implements DriverInterface
     protected $loaded;
     protected $groupBy;
 
-    protected $reader;
-
-    public function __construct($reader)
+    public function __construct()
     {
-        $this->reader = $reader;
         $this->columns = $this->fields = $this->loaded = $this->groupBy = $this->filterable = $this->sortable = [];
     }
 
     public function getClassColumns($class, $group = 'default')
     {
-        $this->loadMetadataFromReader($class, $group);
+        $this->loadMetadata($class, $group);
 
         return $this->columns[$class][$group];
     }
 
     public function getFieldsMetadata($class, $group = 'default')
     {
-        $this->loadMetadataFromReader($class, $group);
+        $this->loadMetadata($class, $group);
 
         return $this->fields[$class][$group];
     }
 
     public function getGroupBy($class, $group = 'default')
     {
+        $this->loadMetadata($class, $group);
+
         return isset($this->groupBy[$class][$group]) ? $this->groupBy[$class][$group] : [];
     }
 
-    protected function loadMetadataFromReader($className, $group = 'default')
+    protected function loadMetadata($className, $group = 'default')
     {
         if (isset($this->loaded[$className][$group])) {
             return;
         }
 
         $reflectionCollection = [];
+        $this->fields[$className][$group] = [];
 
         $reflectionCollection[] = $reflection = new \ReflectionClass($className);
         while (false !== $reflection = $reflection->getParentClass()) {
@@ -67,15 +67,19 @@ class Annotation implements DriverInterface
         while (!empty($reflectionCollection)) {
             $reflection = array_pop($reflectionCollection);
 
-            foreach ($this->reader->getClassAnnotations($reflection) as $class) {
-                $this->getMetadataFromClass($className, $class, $group);
+            foreach ($reflection->getAttributes(Source::class) as $attribute) {
+                $this->getMetadataFromClass($className, $attribute->newInstance(), $group);
+            }
+
+            foreach ($reflection->getAttributes(Column::class) as $attribute) {
+                $this->getMetadataFromClass($className, $attribute->newInstance(), $group);
             }
 
             foreach ($reflection->getProperties() as $property) {
                 $this->fields[$className][$group][$property->getName()] = [];
 
-                foreach ($this->reader->getPropertyAnnotations($property) as $class) {
-                    $this->getMetadataFromClassProperty($className, $class, $property->getName(), $group);
+                foreach ($property->getAttributes(Column::class) as $attribute) {
+                    $this->getMetadataFromClassProperty($className, $attribute->newInstance(), $property->getName(), $group);
                 }
             }
         }
@@ -87,10 +91,10 @@ class Annotation implements DriverInterface
                 // Ignore mapped fields
                 if (strpos($columnId, '.') === false) {
                     if (!isset($this->fields[$className][$group][$columnId]['filterable'])) {
-                        $this->fields[$className][$group][$columnId]['filterable'] = $this->filterable[$className][$group];
+                        $this->fields[$className][$group][$columnId]['filterable'] = $this->filterable[$className][$group] ?? true;
                     }
                     if (!isset($this->fields[$className][$group][$columnId]['sortable'])) {
-                        $this->fields[$className][$group][$columnId]['sortable'] = $this->sortable[$className][$group];
+                        $this->fields[$className][$group][$columnId]['sortable'] = $this->sortable[$className][$group] ?? true;
                     }
                 }
             }
@@ -105,17 +109,17 @@ class Annotation implements DriverInterface
             $metadata = $class->getMetadata();
 
             if (isset($metadata['id']) && $name !== null) {
-                throw new \Exception(sprintf('Parameter `id` can\'t be used in annotations for property `%s`, please remove it from class %s', $name, $className));
+                throw new \Exception(sprintf('Parameter `id` can\'t be used in attributes for property `%s`, please remove it from class %s', $name, $className));
             }
 
-            if ($name === null) { // Class Column annotation
+            if ($name === null) { // Class Column attribute
                 if (isset($metadata['id'])) {
                     $metadata['source'] = false;
                     $this->fields[$className][$group][$metadata['id']] = [];
                 } else {
-                    throw new \Exception(sprintf('Missing parameter `id` in annotations for extra column of class %s', $className));
+                    throw new \Exception(sprintf('Missing parameter `id` in attributes for extra column of class %s', $className));
                 }
-            } else { // Property Column annotation
+            } else { // Property Column attribute
                 // Relationship handle
                 if (isset($metadata['field']) && (strpos($metadata['field'], '.') !== false || strpos($metadata['field'], ':') !== false)) {
                     $metadata['id'] = $metadata['field'];
@@ -129,7 +133,7 @@ class Annotation implements DriverInterface
                 }
             }
 
-            // Check the group of the annotation and don't override if an annotation with the group have already been defined
+            // Keep the first matching attribute for this group.
             if (isset($metadata['groups']) && !in_array($group, (array) $metadata['groups'])
                 || isset($this->fields[$className][$group][$metadata['id']]['groups'])) {
                 return;
