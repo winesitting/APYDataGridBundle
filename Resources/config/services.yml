@@ -33,6 +33,9 @@ services:
         class: '%grid.manager.class%'
         arguments: ['@service_container', '@twig']
 
+    '%grid.manager.class%':
+        alias: grid.manager
+
     grid.metadata.driver.attribute:
         class: APY\DataGridBundle\Grid\Mapping\Driver\AttributeDriver
 
@@ -40,6 +43,5 @@ services:
         class: APY\DataGridBundle\Grid\Mapping\Metadata\Manager
         shared: false
         public: true
-        arguments: ['@form.factory']
         calls:
             - [addDriver, ['@grid.metadata.driver.attribute', 1]]
