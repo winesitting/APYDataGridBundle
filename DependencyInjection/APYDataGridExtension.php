@@ -15,7 +15,6 @@ namespace APY\DataGridBundle\DependencyInjection;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
-use Symfony\Component\DependencyInjection\Loader\XmlFileLoader;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 
 class APYDataGridExtension extends Extension
@@ -25,12 +24,10 @@ class APYDataGridExtension extends Extension
         $configuration = new Configuration();
         $config = $this->processConfiguration($configuration, $configs);
 
-        $loader = new XmlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
-        $loader->load('services.xml');
-        $loader->load('columns.xml');
-
-        $ymlLoader = new YamlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
-        $ymlLoader->load('grid.yml');
+        $loader = new YamlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
+        $loader->load('services.yml');
+        $loader->load('columns.yml');
+        $loader->load('grid.yml');
 
         $container->setParameter('apy_data_grid.limits', $config['limits']);
         $container->setParameter('apy_data_grid.theme', $config['theme']);
