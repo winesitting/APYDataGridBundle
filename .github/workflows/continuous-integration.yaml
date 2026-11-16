@@ -37,7 +37,7 @@ jobs:
         php-version: '${{ matrix.php-version }}'
         coverage: 'none'
         tools: 'composer:v2, flex'
-        extensions: 'curl, json, intl, mbstring, mongodb, openssl'
+        extensions: 'curl, json, intl, mbstring, mongodb, openssl, pdo_sqlite'
 
     - name: 'Install Composer dependencies' 
       uses : 'ramsey/composer-install@v2'

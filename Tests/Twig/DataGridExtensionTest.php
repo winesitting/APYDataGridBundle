@@ -3,10 +3,15 @@
 namespace APY\DataGridBundle\Tests\Twig;
 
 use APY\DataGridBundle\Grid\Column\Column;
+use APY\DataGridBundle\Grid\Column\TextColumn;
 use APY\DataGridBundle\Grid\Grid;
 use APY\DataGridBundle\Twig\DataGridExtension;
 use PHPUnit\Framework\TestCase;
+use Symfony\Bridge\Twig\Extension\RoutingExtension;
 use Symfony\Component\Routing\RouterInterface;
+use Twig\Environment;
+use Twig\Loader\FilesystemLoader;
+use Twig\TwigFilter;
 
 /**
  * Class DataGridExtensionTest.
@@ -62,5 +67,51 @@ class DataGridExtensionTest extends TestCase
 
         // Unknown section
         $this->assertNull($this->extension->getGridUrl('', $grid, $column));
+    }
+
+    public function testRendersCellsAndPagerWithoutDeprecatedFilters()
+    {
+        $loader = new FilesystemLoader();
+        $loader->addPath(dirname(__DIR__, 2) . '/Resources/views', 'APYDataGrid');
+        $twig = new Environment($loader, ['autoescape' => 'html']);
+        $twig->addExtension($this->extension);
+        $twig->addExtension(new RoutingExtension($this->createMock(RouterInterface::class)));
+        $twig->addFilter(new TwigFilter('trans', static fn($message) => $message));
+        $deprecations = [];
+        set_error_handler(static function ($severity, $message) use (&$deprecations) {
+            if ($severity === E_USER_DEPRECATED) {
+                $deprecations[] = $message;
+
+                return true;
+            }
+
+            return false;
+        });
+
+        try {
+            $template = $twig->load('@APYDataGrid/blocks.html.twig');
+            $column = new TextColumn(['id' => 'name', 'filterable' => false]);
+            $context = ['grid' => ['hash' => 'example'], 'column' => $column, 'value' => '<b>A B</b>'];
+
+            $this->assertSame('&lt;b&gt;A B&lt;/b&gt;', $template->renderBlock('grid_column_cell', $context));
+            $column->setSafe(false);
+            $this->assertSame('<b>A B</b>', $template->renderBlock('grid_column_cell', $context));
+
+            $column->setFilterable(true);
+            $column->setSearchOnClick(true);
+            $context['sourceValue'] = 'A & B';
+            $this->assertSame(
+                '<a href="?example[name][from]=A%20%26%20B" class="searchOnClick">&lt;b&gt;A B&lt;/b&gt;</a>',
+                $template->renderBlock('grid_column_cell', $context)
+            );
+
+            $pager = $template->renderBlock('grid_pager_selectpage', [
+                'grid' => ['hash' => 'example', 'page' => 1, 'pageCount' => 3],
+            ]);
+            $this->assertSame(2, substr_count($pager, '/><input'));
+            $this->assertSame([], $deprecations);
+        } finally {
+            restore_error_handler();
+        }
     }
 }

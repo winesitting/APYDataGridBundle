@@ -76,7 +76,7 @@ abstract class Export implements ExportInterface, ContainerAwareInterface
      *
      * @return \APY\DataGridBundle\Grid\Export\Export
      */
-    public function setContainer(ContainerInterface $container = null)
+    public function setContainer(?ContainerInterface $container = null)
     {
         $this->container = $container;
 

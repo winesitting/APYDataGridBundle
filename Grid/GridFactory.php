@@ -45,7 +45,7 @@ class GridFactory implements GridFactoryInterface
     /**
      * {@inheritdoc}
      */
-    public function create($type = null, Source $source = null, array $options = [])
+    public function create($type = null, ?Source $source = null, array $options = [])
     {
         return $this->createBuilder($type, $source, $options)->getGrid();
     }
@@ -53,7 +53,7 @@ class GridFactory implements GridFactoryInterface
     /**
      * {@inheritdoc}
      */
-    public function createBuilder($type = 'grid', Source $source = null, array $options = [])
+    public function createBuilder($type = 'grid', ?Source $source = null, array $options = [])
     {
         $type = $this->resolveType($type);
         $options = $this->resolveOptions($type, $source, $options);
@@ -121,7 +121,7 @@ class GridFactory implements GridFactoryInterface
      *
      * @return array
      */
-    private function resolveOptions(GridTypeInterface $type, Source $source = null, array $options = []): array
+    private function resolveOptions(GridTypeInterface $type, ?Source $source = null, array $options = []): array
     {
         $resolver = new OptionsResolver();
 

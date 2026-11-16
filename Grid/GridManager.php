@@ -168,7 +168,7 @@ class GridManager implements IteratorAggregate, Countable
      *
      * @return Response|array A Response instance
      */
-    public function getGridManagerResponse($param1 = null, $param2 = null, Response $response = null)
+    public function getGridManagerResponse($param1 = null, $param2 = null, ?Response $response = null)
     {
         $isReadyForRedirect = $this->isReadyForRedirect();
 

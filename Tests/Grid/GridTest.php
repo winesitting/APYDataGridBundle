@@ -21,7 +21,9 @@ use APY\DataGridBundle\Grid\Source\Source;
 use PHPUnit_Framework_MockObject_MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\Container;
+use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 use Symfony\Component\HttpFoundation\HeaderBag;
+use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\ParameterBag;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -938,11 +940,7 @@ class GridTest extends TestCase
     {
         $url = 'url';
 
-        $this
-            ->request
-            ->method('get')
-            ->with('_route')
-            ->willReturn($url);
+        $this->request->attributes->set('_route', $url);
 
         $this
             ->router
@@ -1459,12 +1457,7 @@ class GridTest extends TestCase
 
         $controller = 'aController';
 
-        $this
-            ->request
-            ->expects($this->at(1))
-            ->method('get')
-            ->with('_controller')
-            ->willReturn($controller);
+        $this->request->attributes->set('_controller', $controller);
 
         $this->grid->handleRequest($this->request);
 
@@ -1697,6 +1690,60 @@ class GridTest extends TestCase
         $this->grid->handleRequest($this->request);
 
         $this->assertSame(50, $this->grid->getLimit());
+    }
+
+    /**
+     * @dataProvider provideGridRequestData
+     */
+    public function testReadsGridDataFromQueryAndForm($queryData, $formData, $expectedLimit)
+    {
+        foreach ([false, true] as $redirect) {
+            $this->arrange($this->createMock(GridConfigInterface::class));
+            $this->arrangeGridSourceDataLoadedWithEmptyRows();
+            $this->arrangeGridPrimaryColumn();
+
+            if ($queryData !== null) {
+                $this->request->query->set($this->gridHash, $queryData);
+            }
+            $this->request->request->set($this->gridHash, $formData);
+
+            if ($expectedLimit === null) {
+                $this->session->expects($this->never())->method('set');
+            } else {
+                $this->session->expects($this->atLeastOnce())->method('set')->with(
+                    $this->gridHash,
+                    [Grid::REQUEST_QUERY_PAGE => 0, Grid::REQUEST_QUERY_LIMIT => $expectedLimit]
+                );
+            }
+
+            if ($redirect) {
+                $this->assertSame($expectedLimit !== null, $this->grid->isReadyForRedirect());
+            } else {
+                $this->grid->handleRequest($this->request);
+                $this->assertSame($expectedLimit, $this->grid->getLimit());
+            }
+        }
+    }
+
+    public function provideGridRequestData(): array
+    {
+        return [
+            'query' => [[Grid::REQUEST_QUERY_LIMIT => 20], [], 20],
+            'form' => [null, [Grid::REQUEST_QUERY_LIMIT => 50], 50],
+            'query takes precedence' => [[Grid::REQUEST_QUERY_LIMIT => 20], [Grid::REQUEST_QUERY_LIMIT => 50], 20],
+            'empty query takes precedence' => [[], [Grid::REQUEST_QUERY_LIMIT => 50], null],
+        ];
+    }
+
+    public function testRejectsScalarGridRequestData()
+    {
+        $this->arrangeGridSourceDataLoadedWithEmptyRows();
+        $this->arrangeGridPrimaryColumn();
+        $this->request->query->set($this->gridHash, 'invalid');
+
+        $this->expectException(BadRequestException::class);
+
+        $this->grid->handleRequest($this->request);
     }
 
     public function testProcessPageWithMassActionDuringHandleRequest()
@@ -3210,12 +3257,7 @@ class GridTest extends TestCase
 
         $controller = 'aController';
 
-        $this
-            ->request
-            ->expects($this->at(0))
-            ->method('get')
-            ->with('_controller')
-            ->willReturn($controller);
+        $this->request->attributes->set('_controller', $controller);
 
         $this->grid->isReadyForRedirect();
 
@@ -3692,10 +3734,7 @@ class GridTest extends TestCase
         );
 
         $page = 1;
-        $this
-            ->request
-            ->method('get')
-            ->willReturn([Grid::REQUEST_QUERY_PAGE => $page]);
+        $this->stubRequestWithData([Grid::REQUEST_QUERY_PAGE => $page]);
         $this
             ->request
             ->method('isXmlHttpRequest')
@@ -3775,10 +3814,7 @@ class GridTest extends TestCase
             $col5To
         );
 
-        $this
-            ->request
-            ->method('get')
-            ->willReturn([Grid::REQUEST_QUERY_EXPORT => 0]);
+        $this->stubRequestWithData([Grid::REQUEST_QUERY_EXPORT => 0]);
 
         $this->grid->addExport($this->createMock(Export::class));
 
@@ -3846,10 +3882,7 @@ class GridTest extends TestCase
         );
 
         $page = 0;
-        $this
-            ->request
-            ->method('get')
-            ->willReturn([Grid::REQUEST_QUERY_PAGE => $page]);
+        $this->stubRequestWithData([Grid::REQUEST_QUERY_PAGE => $page]);
 
         $column
             ->expects($this->never())
@@ -3917,10 +3950,7 @@ class GridTest extends TestCase
         $this->grid->setDefaultPage(2);
 
         $page = 1;
-        $this
-            ->request
-            ->method('get')
-            ->willReturn([Grid::REQUEST_QUERY_PAGE => $page]);
+        $this->stubRequestWithData([Grid::REQUEST_QUERY_PAGE => $page]);
         $this
             ->request
             ->method('isXmlHttpRequest')
@@ -3946,10 +3976,7 @@ class GridTest extends TestCase
 
         $this->grid->setDefaultPage(2);
 
-        $this
-            ->request
-            ->method('get')
-            ->willReturn([Grid::REQUEST_QUERY_EXPORT => 0]);
+        $this->stubRequestWithData([Grid::REQUEST_QUERY_EXPORT => 0]);
 
         $this->grid->addExport($this->createMock(Export::class));
 
@@ -3973,10 +4000,7 @@ class GridTest extends TestCase
         $this->grid->setDefaultPage(2);
 
         $page = 1;
-        $this
-            ->request
-            ->method('get')
-            ->willReturn([Grid::REQUEST_QUERY_PAGE => $page]);
+        $this->stubRequestWithData([Grid::REQUEST_QUERY_PAGE => $page]);
 
         $this
             ->session
@@ -4051,10 +4075,7 @@ class GridTest extends TestCase
         $this->grid->setDefaultOrder($columnId, $order);
 
         $page = 1;
-        $this
-            ->request
-            ->method('get')
-            ->willReturn([Grid::REQUEST_QUERY_PAGE => $page]);
+        $this->stubRequestWithData([Grid::REQUEST_QUERY_PAGE => $page]);
         $this
             ->request
             ->method('isXmlHttpRequest')
@@ -4091,10 +4112,7 @@ class GridTest extends TestCase
 
         $this->grid->setDefaultOrder($columnId, $order);
 
-        $this
-            ->request
-            ->method('get')
-            ->willReturn([Grid::REQUEST_QUERY_EXPORT => 0]);
+        $this->stubRequestWithData([Grid::REQUEST_QUERY_EXPORT => 0]);
 
         $this->grid->addExport($this->createMock(Export::class));
 
@@ -4126,10 +4144,7 @@ class GridTest extends TestCase
         $this->grid->setDefaultOrder($columnId, $order);
 
         $page = 1;
-        $this
-            ->request
-            ->method('get')
-            ->willReturn([Grid::REQUEST_QUERY_PAGE => $page]);
+        $this->stubRequestWithData([Grid::REQUEST_QUERY_PAGE => $page]);
 
         $column
             ->expects($this->never())
@@ -4190,10 +4205,7 @@ class GridTest extends TestCase
         $this->grid->setDefaultLimit($limit);
 
         $page = 1;
-        $this
-            ->request
-            ->method('get')
-            ->willReturn([Grid::REQUEST_QUERY_PAGE => $page]);
+        $this->stubRequestWithData([Grid::REQUEST_QUERY_PAGE => $page]);
         $this
             ->request
             ->method('isXmlHttpRequest')
@@ -4220,10 +4232,7 @@ class GridTest extends TestCase
         $this->grid->setLimits([$limit => "$limit"]);
         $this->grid->setDefaultLimit($limit);
 
-        $this
-            ->request
-            ->method('get')
-            ->willReturn([Grid::REQUEST_QUERY_EXPORT => 0]);
+        $this->stubRequestWithData([Grid::REQUEST_QUERY_EXPORT => 0]);
 
         $this->grid->addExport($this->createMock(Export::class));
 
@@ -4245,10 +4254,7 @@ class GridTest extends TestCase
         $this->grid->setDefaultLimit($limit);
 
         $page = 1;
-        $this
-            ->request
-            ->method('get')
-            ->willReturn([Grid::REQUEST_QUERY_PAGE => $page]);
+        $this->stubRequestWithData([Grid::REQUEST_QUERY_PAGE => $page]);
 
         $this
             ->session
@@ -4284,10 +4290,7 @@ class GridTest extends TestCase
         [$group, $tweakId] = $this->arrangeDefaultTweaks($tweakPage);
 
         $requestPage = 2;
-        $this
-            ->request
-            ->method('get')
-            ->willReturn([Grid::REQUEST_QUERY_PAGE => $requestPage]);
+        $this->stubRequestWithData([Grid::REQUEST_QUERY_PAGE => $requestPage]);
         $this
             ->request
             ->method('isXmlHttpRequest')
@@ -4312,10 +4315,7 @@ class GridTest extends TestCase
 
         $this->arrangeDefaultTweaks(1);
 
-        $this
-            ->request
-            ->method('get')
-            ->willReturn([Grid::REQUEST_QUERY_EXPORT => 0]);
+        $this->stubRequestWithData([Grid::REQUEST_QUERY_EXPORT => 0]);
 
         $this->grid->addExport($this->createMock(Export::class));
 
@@ -4335,10 +4335,7 @@ class GridTest extends TestCase
         $this->arrangeDefaultTweaks(1);
 
         $requestPage = 2;
-        $this
-            ->request
-            ->method('get')
-            ->willReturn([Grid::REQUEST_QUERY_PAGE => $requestPage]);
+        $this->stubRequestWithData([Grid::REQUEST_QUERY_PAGE => $requestPage]);
 
         $this
             ->session
@@ -4353,10 +4350,7 @@ class GridTest extends TestCase
     {
         $this->arrangeGridSourceDataLoadedWithEmptyRows();
 
-        $this
-            ->request
-            ->method('get')
-            ->willReturn([Grid::REQUEST_QUERY_PAGE => 10]);
+        $this->stubRequestWithData([Grid::REQUEST_QUERY_PAGE => 10]);
 
         $this->grid->setRouteUrl('aRouteUrl');
 
@@ -4473,6 +4467,8 @@ class GridTest extends TestCase
         $this->request = $request;
 
         $request->attributes = new ParameterBag([]);
+        $request->query = new InputBag();
+        $request->request = new InputBag();
 
         $requestStack = $this->createMock(RequestStack::class);
         $requestStack
@@ -6090,11 +6086,7 @@ class GridTest extends TestCase
 
     private function stubRequestWithData(array $requestData)
     {
-        $this
-            ->request
-            ->method('get')
-            ->with($this->gridHash)
-            ->willReturn($requestData);
+        $this->request->query->set($this->gridHash, $requestData);
     }
 
     /**

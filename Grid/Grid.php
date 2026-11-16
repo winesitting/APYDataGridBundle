@@ -320,7 +320,7 @@ class Grid implements GridInterface
      * @param string                   $id        set if you are using more then one grid inside controller
      * @param GridConfigInterface|null $config    The grid configuration.
      */
-    public function __construct($container, AuthorizationCheckerInterface $securityContext, Environment $twig, $id = '', GridConfigInterface $config = null)
+    public function __construct($container, AuthorizationCheckerInterface $securityContext, Environment $twig, $id = '', ?GridConfigInterface $config = null)
     {
         // @todo: why the whole container is injected?
         $this->container = $container;
@@ -446,7 +446,9 @@ class Grid implements GridInterface
 
         $this->createHash();
 
-        $this->requestData = $request->get($this->hash);
+        $this->requestData = $request->query->has($this->hash)
+            ? $request->query->all($this->hash)
+            : $request->request->all($this->hash);
 
         $this->processPersistence();
 
@@ -516,7 +518,9 @@ class Grid implements GridInterface
 
         $this->createHash();
 
-        $this->requestData = (array) $this->request->get($this->hash);
+        $this->requestData = $this->request->query->has($this->hash)
+            ? $this->request->query->all($this->hash)
+            : $this->request->request->all($this->hash);
 
         $this->processPersistence();
 
@@ -1155,7 +1159,7 @@ class Grid implements GridInterface
 
     protected function createHash()
     {
-        $this->hash = 'grid_' . (empty($this->id) ? md5($this->request->get('_controller') . $this->columns->getHash() . $this->source->getHash()) : $this->getId());
+        $this->hash = 'grid_' . (empty($this->id) ? md5($this->request->attributes->get('_controller') . $this->columns->getHash() . $this->source->getHash()) : $this->getId());
     }
 
     public function getHash()
@@ -1528,7 +1532,7 @@ class Grid implements GridInterface
     public function getRouteUrl()
     {
         if ($this->routeUrl === null) {
-            $this->routeUrl = $this->router->generate((string) $this->request->get('_route'), $this->getRouteParameters());
+            $this->routeUrl = $this->router->generate((string) $this->request->attributes->get('_route'), $this->getRouteParameters());
         }
 
         return $this->routeUrl;
@@ -2136,7 +2140,7 @@ class Grid implements GridInterface
      *
      * @return Response|array A Response instance
      */
-    public function getGridResponse($param1 = null, $param2 = null, Response $response = null)
+    public function getGridResponse($param1 = null, $param2 = null, ?Response $response = null)
     {
         $isReadyForRedirect = $this->isReadyForRedirect();
 

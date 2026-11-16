@@ -66,7 +66,7 @@ abstract class Source implements DriverInterface
     /**
      * @param \Closure $callback
      */
-    public function manipulateRow(\Closure $callback = null)
+    public function manipulateRow(?\Closure $callback = null)
     {
         $this->prepareRowCallback = $callback;
 

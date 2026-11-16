@@ -21,7 +21,7 @@ interface GridFactoryInterface
      *
      * @return Grid
      */
-    public function create($type = null, Source $source = null, array $options = []);
+    public function create($type = null, ?Source $source = null, array $options = []);
 
     /**
      * Returns a grid builder.
@@ -32,7 +32,7 @@ interface GridFactoryInterface
      *
      * @return GridBuilder
      */
-    public function createBuilder($type = null, Source $source = null, array $options = []);
+    public function createBuilder($type = null, ?Source $source = null, array $options = []);
 
     /**
      * Returns a column.
