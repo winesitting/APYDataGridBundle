@@ -1695,6 +1695,8 @@ class GridTest extends TestCase
         $this->mockPageLimitRequestData();
 
         $this->grid->handleRequest($this->request);
+
+        $this->assertSame(50, $this->grid->getLimit());
     }
 
     public function testProcessPageWithMassActionDuringHandleRequest()
@@ -1813,7 +1815,7 @@ class GridTest extends TestCase
 
         $this->grid->handleRequest($this->request);
 
-        $this->assertEmpty($this->grid->getLimit());
+        $this->assertSame(10, $this->grid->getLimit());
     }
 
     public function testSetDefaultSessionFiltersDuringHandleRequest()
@@ -3076,9 +3078,10 @@ class GridTest extends TestCase
             ->expects($this->atLeastOnce())
             ->method('set')
             ->withConsecutive(
-                [$this->gridHash, [Grid::REQUEST_QUERY_PAGE => 0]],
+                [$this->gridHash, [Grid::REQUEST_QUERY_PAGE => 0, Grid::REQUEST_QUERY_LIMIT => 10]],
                 [$this->gridHash, [
                     Grid::REQUEST_QUERY_PAGE => 0,
+                    Grid::REQUEST_QUERY_LIMIT => 10,
                     $col1Id                  => ['operator' => $filter1Operator, 'from' => $filter1From, 'to' => $filter1To],
                     $col2Id                  => ['from' => $filter2From], ],
                 ]
@@ -5373,7 +5376,7 @@ class GridTest extends TestCase
             ->session
             ->expects($this->atLeastOnce())
             ->method('set')
-            ->with($this->gridHash, [Grid::REQUEST_QUERY_PAGE => 0]);
+            ->with($this->gridHash, [Grid::REQUEST_QUERY_PAGE => 0, Grid::REQUEST_QUERY_LIMIT => 50]);
     }
 
     private function mockPageMassActionRequestData()
@@ -5584,7 +5587,7 @@ class GridTest extends TestCase
             ->session
             ->expects($this->atLeastOnce())
             ->method('set')
-            ->with($this->gridHash, [Grid::REQUEST_QUERY_PAGE => 0]);
+            ->with($this->gridHash, [Grid::REQUEST_QUERY_PAGE => 0, Grid::REQUEST_QUERY_LIMIT => 10]);
     }
 
     private function mockDefaultSessionFiltersWithoutRequestData()
