@@ -210,7 +210,7 @@ abstract class Column
         if (is_callable($this->callback)) {
             return call_user_func($this->callback, $value, $row, $router);
         }
-        if (is_object($value) && $value instanceof \UnitEnum) {
+        if ($value instanceof \BackedEnum) {
             $value = $value->value;
         }
 

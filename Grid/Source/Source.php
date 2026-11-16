@@ -394,7 +394,7 @@ abstract class Source implements DriverInterface
                         case 'datetime':
                         case 'date':
                         case 'time':
-                            if ($value instanceof \DateTime || $value instanceof \DateTimeImmutable) {
+                            if ($value instanceof \DateTimeInterface) {
                                 $sortedItems[$key] = $value->getTimestamp();
                             } else {
                                 $sortedItems[$key] = strtotime($value);

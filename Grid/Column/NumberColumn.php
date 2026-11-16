@@ -96,7 +96,7 @@ class NumberColumn extends Column
 
     public function getDisplayedValue($value)
     {
-        if (is_object($value) && $value instanceof \UnitEnum) {
+        if ($value instanceof \BackedEnum) {
             $value = $value->value;
         }
         if ($value !== null && $value !== '') {
