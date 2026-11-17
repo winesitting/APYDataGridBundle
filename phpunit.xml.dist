@@ -1,31 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
-<phpunit 
-    
-    colors                                     = "true"
-    beStrictAboutTestsThatDoNotTestAnything    = "false"
-    verbose                                    = "true"
-    convertDeprecationsToExceptions            = "false"
-    bootstrap                                  = "./Tests/bootstrap.php"
+<phpunit
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd"
+    colors="true"
+    beStrictAboutTestsThatDoNotTestAnything="false"
+    verbose="true"
+    convertDeprecationsToExceptions="false"
+    bootstrap="./Tests/bootstrap.php"
 >
+    <coverage>
+        <include>
+            <directory>./</directory>
+        </include>
+        <exclude>
+            <directory>./Resources</directory>
+            <directory>./Tests</directory>
+            <directory>./vendor</directory>
+        </exclude>
+        <report>
+            <clover outputFile="build/logs/clover.xml"/>
+        </report>
+    </coverage>
     <testsuites>
         <testsuite name="APYDataGridBundle test suite">
             <directory suffix="Test.php">./Tests</directory>
         </testsuite>
     </testsuites>
-    <filter>
-        <whitelist>
-            <directory>./</directory>
-            <exclude>
-                <directory>./Resources</directory>
-                <directory>./Tests</directory>
-                <directory>./vendor</directory>
-            </exclude>
-        </whitelist>
-    </filter>
-    <logging>
-        <log type="coverage-clover" target="build/logs/clover.xml"/>
-    </logging>
     <extensions>
         <extension class="APY\DataGridBundle\Tests\Hook\BypassFinalHook"/>
     </extensions>

@@ -3,6 +3,7 @@
 namespace APY\DataGridBundle\Tests\Grid\Source;
 
 use APY\DataGridBundle\Grid\Source\Entity;
+use Doctrine\DBAL\DriverManager;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\ORMSetup;
@@ -23,8 +24,11 @@ class EntityTest extends TestCase
 
         $config = ORMSetup::createConfiguration(true);
         $config->setMetadataDriverImpl(new StaticPHPDriver([]));
-        $manager = EntityManager::create(['driver' => 'pdo_sqlite', 'memory' => true], $config);
-        $connection = $manager->getConnection();
+        if (method_exists($config, 'enableNativeLazyObjects')) {
+            $config->enableNativeLazyObjects(true);
+        }
+        $connection = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true]);
+        $manager = new EntityManager($connection, $config);
 
         try {
             (new SchemaTool($manager))->createSchema([$manager->getClassMetadata(CountedRecord::class)]);
