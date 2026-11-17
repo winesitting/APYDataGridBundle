@@ -37,22 +37,26 @@ class DSVExport extends Export
 
     public function computeData(Grid $grid)
     {
-        $data = $this->getFlatGridData($grid);
-
-        // Array to dsv
+        $this->grid = $grid;
         $outstream = fopen('php://temp', 'r+');
 
-        foreach ($data as $line) {
-            fputcsv($outstream, $line, $this->delimiter, '"');
+        if ($grid->isTitleSectionVisible()) {
+            fputcsv($outstream, $this->getGridTitles(), $this->delimiter, '"', '\\');
+        }
+
+        foreach ($grid->getRows() as $row) {
+            $line = [];
+            foreach ($grid->getColumns() as $column) {
+                if ($column->isVisible(true)) {
+                    $line[$column->getId()] = $this->cleanHTML($this->getGridCell($column, $row));
+                }
+            }
+            fputcsv($outstream, $line, $this->delimiter, '"', '\\');
         }
 
         rewind($outstream);
 
-        $content = $this->withBOM ? "\xEF\xBB\xBF" : '';
-
-        while (($buffer = fgets($outstream)) !== false) {
-            $content .= $buffer;
-        }
+        $content = ($this->withBOM ? "\xEF\xBB\xBF" : '').stream_get_contents($outstream);
 
         fclose($outstream);
 

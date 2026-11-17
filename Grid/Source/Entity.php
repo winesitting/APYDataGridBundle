@@ -14,6 +14,7 @@
 namespace APY\DataGridBundle\Grid\Source;
 
 use APY\DataGridBundle\Grid\Column\Column;
+use APY\DataGridBundle\Grid\Column\DateTimeColumn;
 use APY\DataGridBundle\Grid\Column\JoinColumn;
 use APY\DataGridBundle\Grid\Row;
 use APY\DataGridBundle\Grid\Rows;
@@ -112,6 +113,8 @@ class Entity extends Source
      * @var null
      */
     protected $prepareCountQueryCallback = null;
+
+    protected $knownTotalCount = null;
 
     /**
      * Legacy way of accessing the default alias (before it became possible to change it)
@@ -386,6 +389,7 @@ class Entity extends Source
      */
     public function execute($columns, $page = 0, $limit = 0, $maxResults = null, $gridDataJunction = Column::DATA_CONJUNCTION)
     {
+        $this->knownTotalCount = null;
         $this->query = $this->getQueryBuilder();
         $this->querySelectfromSource = clone $this->query;
 
@@ -517,7 +521,57 @@ class Entity extends Source
         $this->prepareQuery($this->query);
         $hasJoin = $this->checkIfQueryHasFetchJoin($this->query);
 
-        $query = $this->query->getQuery();
+        if (!$hasJoin && $this->query->getDQLPart('orderBy') && null !== $this->getSimpleCountQuery(clone $this->query)) {
+            $rootAlias = $this->query->getRootAliases()[0];
+            $metadata = $this->query->getEntityManager()->getClassMetadata($this->query->getRootEntities()[0]);
+            $identifier = $rootAlias.'.'.$metadata->getIdentifierFieldNames()[0];
+            $hasIdentifierOrder = false;
+            foreach ($this->query->getDQLPart('orderBy') as $orderBy) {
+                foreach ($orderBy->getParts() as $part) {
+                    $hasIdentifierOrder = $hasIdentifierOrder || (bool) preg_match('/^'.preg_quote($identifier, '/').'(?:\s+(?:ASC|DESC))?$/iD', $part);
+                }
+            }
+            if (!$hasIdentifierOrder) {
+                // Equal sort values must keep the same page membership across execution plans.
+                $this->query->addOrderBy($identifier, 'ASC');
+            }
+        }
+
+        $pageQuery = clone $this->query;
+        foreach ($columns as $column) {
+            if (!$column instanceof DateTimeColumn || !$column->isFiltered() || $hasJoin || 0 >= $limit || null !== $maxResults
+                || null !== $this->prepareCountQueryCallback || self::class !== (new \ReflectionMethod($this, 'prepareCountQuery'))->getDeclaringClass()->getName()) {
+                continue;
+            }
+            $summaryQuery = clone $this->query;
+            if (null === $this->getSimpleCountQuery($summaryQuery)) {
+                break;
+            }
+            $rootAlias = $summaryQuery->getRootAliases()[0];
+            $metadata = $summaryQuery->getEntityManager()->getClassMetadata($summaryQuery->getRootEntities()[0]);
+            $identifier = $metadata->getIdentifierFieldNames()[0];
+            if (!in_array($metadata->getTypeOfField($identifier), ['integer', 'smallint', 'bigint'], true)) {
+                break;
+            }
+            $field = $rootAlias.'.'.$identifier;
+            $summary = $summaryQuery->select('COUNT('.$field.') AS total', 'MIN('.$field.') AS firstId', 'MAX('.$field.') AS lastId')
+                ->setFirstResult(0)->setMaxResults(null)->getQuery()->getScalarResult()[0] ?? [];
+            if (isset($summary['total'])) {
+                $this->knownTotalCount = (int) $summary['total'];
+                $remaining = $this->knownTotalCount - $page * $limit;
+                if (0 >= $remaining) {
+                    return new Rows();
+                }
+                // These integer bounds describe this exact filtered set, including nonchronological IDs.
+                if (preg_match('/^-?\d+$/D', (string) $summary['firstId']) && preg_match('/^-?\d+$/D', (string) $summary['lastId'])) {
+                    $pageQuery->andWhere($field.' >= '.$summary['firstId'])->andWhere($field.' <= '.$summary['lastId']);
+                }
+                $pageQuery->setMaxResults(min($limit, $remaining));
+            }
+            break;
+        }
+
+        $query = $pageQuery->getQuery();
         foreach ($this->hints as $hintKey => $hintValue) {
             $query->setHint($hintKey, $hintValue);
         }
@@ -538,8 +592,10 @@ class Entity extends Source
 
         // hydrate result
         $result = new Rows();
+        $rawRowCount = 0;
 
         foreach ($items as $item) {
+            ++$rawRowCount;
             $row = new Row();
 
             foreach ($item as $key => $value) {
@@ -557,6 +613,10 @@ class Entity extends Source
             if (($modifiedRow = $this->prepareRow($row)) !== null) {
                 $result->addRow($modifiedRow);
             }
+        }
+
+        if (0 === (int) $page && null === $maxResults && !$hasJoin && (0 === (int) $limit || $rawRowCount < $limit)) {
+            $this->knownTotalCount = $rawRowCount;
         }
 
         return $result;
@@ -581,6 +641,10 @@ class Entity extends Source
 
         $countQuery = $this->getSimpleCountQuery($countQueryBuilder);
         if (null !== $countQuery) {
+            if (null === $maxResults && null !== $this->knownTotalCount && null === $this->prepareCountQueryCallback
+                && self::class === (new \ReflectionMethod($this, 'prepareCountQuery'))->getDeclaringClass()->getName()) {
+                return $this->knownTotalCount;
+            }
             $countQuery->setFirstResult(0)->setMaxResults($maxResults);
 
             return (int) array_sum($countQuery->getSingleColumnResult());
@@ -705,7 +769,9 @@ class Entity extends Source
             }
         }
 
-        return $queryBuilder->select('COUNT(DISTINCT '.$rootAlias.'.'.$identifiers[0].') AS total')->getQuery();
+        $distinct = $this->checkIfQueryHasFetchJoin($queryBuilder) ? 'DISTINCT ' : '';
+
+        return $queryBuilder->select('COUNT('.$distinct.$rootAlias.'.'.$identifiers[0].') AS total')->getQuery();
     }
 
     public function getFieldsMetadata($class, $group = 'default')
@@ -942,14 +1008,21 @@ class Entity extends Source
      */
     protected function checkIfQueryHasFetchJoin(QueryBuilder $qb)
     {
-        $join = $qb->getDqlPart('join');
-        if (empty($join)) {
-            return false;
+        $manager = $qb->getEntityManager();
+        $metadataByAlias = [];
+        foreach ($qb->getRootAliases() as $index => $alias) {
+            $metadataByAlias[$alias] = $manager->getClassMetadata($qb->getRootEntities()[$index]);
         }
 
-        foreach ($join[$this->getTableAlias()] as $join) {
-            if ($join->getJoinType() === Join::INNER_JOIN || $join->getJoinType() === Join::LEFT_JOIN) {
-                return true;
+        foreach ($qb->getDQLPart('join') as $joins) {
+            foreach ($joins as $join) {
+                $path = explode('.', $join->getJoin());
+                $metadata = $metadataByAlias[$path[0]] ?? null;
+                // Unknown joins may multiply root rows, so retain Doctrine's two-query pagination.
+                if (2 !== count($path) || null === $metadata || !$metadata->hasAssociation($path[1]) || $metadata->isCollectionValuedAssociation($path[1])) {
+                    return true;
+                }
+                $metadataByAlias[$join->getAlias()] = $manager->getClassMetadata($metadata->getAssociationTargetClass($path[1]));
             }
         }
 
