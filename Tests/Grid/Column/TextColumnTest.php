@@ -16,6 +16,14 @@ class TextColumnTest extends WebTestCase
         $this->assertEquals('text', $this->column->getType());
     }
 
+    public function testDqlFieldsKeepConfiguredOperators()
+    {
+        $operators = [Column::OPERATOR_LIKE, Column::OPERATOR_EQ];
+        $column = new TextColumn(['id' => 'total', 'field' => 'amount:sum', 'operators' => $operators]);
+
+        $this->assertSame($operators, $column->getOperators());
+    }
+
     public function testIsQueryValid()
     {
         $this->assertTrue($this->column->isQueryValid('foo'));

@@ -611,7 +611,6 @@ class Entity extends Source
             }
 
             $hints[] = 'Doctrine\ORM\Tools\Pagination\CountWalker';
-            //$hints[] = 'APY\DataGridBundle\Grid\Helper\ORMCountWalker';
             $countQuery->setHint(Query::HINT_CUSTOM_TREE_WALKERS, $hints);
         }
         $countQuery->setFirstResult(0)->setMaxResults($maxResults);
