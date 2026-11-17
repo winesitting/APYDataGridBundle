@@ -28,7 +28,7 @@ abstract class Source implements DriverInterface
     protected $count;
 
     /**
-     * @param \Doctrine\ODM\MongoDB\Query\Builder $queryBuilder
+     * @param \Doctrine\ORM\QueryBuilder|\Doctrine\ODM\MongoDB\Query\Builder $queryBuilder
      */
     public function prepareQuery($queryBuilder)
     {
