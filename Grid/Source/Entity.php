@@ -579,6 +579,13 @@ class Entity extends Source
 
         $this->prepareCountQuery($countQueryBuilder);
 
+        $countQuery = $this->getSimpleCountQuery($countQueryBuilder);
+        if (null !== $countQuery) {
+            $countQuery->setFirstResult(0)->setMaxResults($maxResults);
+
+            return (int) array_sum($countQuery->getSingleColumnResult());
+        }
+
         foreach ($countQueryBuilder->getRootAliases() as $alias) {
             $countQueryBuilder->addSelect($alias);
         }
@@ -624,6 +631,81 @@ class Entity extends Source
         }
 
         return $count;
+    }
+
+    private function getSimpleCountQuery(QueryBuilder $queryBuilder): ?Query
+    {
+        $rootAliases = $queryBuilder->getRootAliases();
+        if (1 !== count($rootAliases) || $queryBuilder->getDQLPart('groupBy') || $queryBuilder->getDQLPart('having') || $this->hints) {
+            return null;
+        }
+
+        // Expressions may aggregate rows or bind parameters; preserve the existing walker for them.
+        foreach ($queryBuilder->getDQLPart('select') as $select) {
+            foreach ($select->getParts() as $part) {
+                if (!preg_match('/^[a-z_][a-z0-9_]*(?:\.[a-z_][a-z0-9_]*)?(?:\s+(?:AS\s+)?(?:HIDDEN\s+)?[a-z_][a-z0-9_]*)?$/iD', $part)) {
+                    return null;
+                }
+            }
+        }
+        foreach ($queryBuilder->getDQLPart('orderBy') as $orderBy) {
+            foreach ($orderBy->getParts() as $part) {
+                if (!preg_match('/^[a-z_][a-z0-9_]*(?:\.[a-z_][a-z0-9_]*)?(?:\s+(?:ASC|DESC))?$/iD', $part)) {
+                    return null;
+                }
+            }
+        }
+
+        $manager = $queryBuilder->getEntityManager();
+        $rootAlias = $rootAliases[0];
+        $metadata = $manager->getClassMetadata($queryBuilder->getRootEntities()[0]);
+        $identifiers = $metadata->getIdentifierFieldNames();
+        if (1 !== count($identifiers) || !$metadata->hasField($identifiers[0])) {
+            return null;
+        }
+
+        $metadataByAlias = [$rootAlias => $metadata];
+        $joins = $queryBuilder->getDQLPart('join');
+        $removableJoins = [];
+        $requiredExpressions = (string) $queryBuilder->getDQLPart('where');
+        foreach ($joins as $rootJoins) {
+            foreach ($rootJoins as $join) {
+                $path = explode('.', $join->getJoin());
+                $parentMetadata = $metadataByAlias[$path[0]] ?? null;
+                if (2 === count($path) && null !== $parentMetadata && $parentMetadata->hasAssociation($path[1])) {
+                    $metadataByAlias[$join->getAlias()] = $manager->getClassMetadata($parentMetadata->getAssociationTargetClass($path[1]));
+                    if (Join::LEFT_JOIN === $join->getJoinType() && null === $join->getCondition() && $parentMetadata->isSingleValuedAssociation($path[1])) {
+                        $removableJoins[$join->getAlias()] = $join;
+                        continue;
+                    }
+                }
+
+                $requiredExpressions .= ' '.$join->getJoin().' '.$join->getCondition();
+            }
+        }
+
+        // Keep every parent needed by a filter or a retained join; extra matches only retain a join.
+        do {
+            $changed = false;
+            foreach ($removableJoins as $alias => $join) {
+                if (preg_match('/(?<![a-z0-9_.:])'.preg_quote($alias, '/').'(?![a-z0-9_])/i', $requiredExpressions)) {
+                    $requiredExpressions .= ' '.$join->getJoin();
+                    unset($removableJoins[$alias]);
+                    $changed = true;
+                }
+            }
+        } while ($changed);
+
+        $queryBuilder->resetDQLPart('join')->resetDQLPart('orderBy');
+        foreach ($joins as $alias => $rootJoins) {
+            foreach ($rootJoins as $join) {
+                if (!isset($removableJoins[$join->getAlias()])) {
+                    $queryBuilder->add('join', [$alias => $join], true);
+                }
+            }
+        }
+
+        return $queryBuilder->select('COUNT(DISTINCT '.$rootAlias.'.'.$identifiers[0].') AS total')->getQuery();
     }
 
     public function getFieldsMetadata($class, $group = 'default')
